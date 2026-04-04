@@ -16,7 +16,8 @@ const NAV_ITEMS = [
   { name: 'Today', id: 'today' },
   { name: 'Progress', id: 'progress' },
   { name: 'Jobs', id: 'jobs' },
-  { name: 'Notes', id: 'notes' }
+  { name: 'Notes', id: 'notes' },
+  { name: 'Accounts', id: 'accounts' }
 ];
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeRoute = 'today', onNavigate }) => {

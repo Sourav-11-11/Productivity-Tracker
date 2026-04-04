@@ -3,15 +3,15 @@ const router = express.Router();
 const { analyzeFullSystem, generateDailyPlan } = require('../services/aiService');
 
 router.post('/analyze-full', async (req, res) => {
+  const { tasks, jobs, userContext } = req.body;
+  const data = { tasks, jobs, userContext };
+
   try {
-    const { tasks, jobs, userContext } = req.body;
-
-    const analysis = await analyzeFullSystem({ tasks, jobs, userContext });
-
-    res.status(200).json(analysis);
-  } catch (error) {
-    console.error('Analysis error:', error);
-    res.status(500).json({ error: 'Failed to analyze system', details: error.message });
+    const result = await analyzeFullSystem(data);
+    res.status(200).json(result);
+  } catch (err) {
+    console.log("AI failed, fallback used");
+    res.status(200).json({ message: "AI temporarily unavailable" });
   }
 });
 

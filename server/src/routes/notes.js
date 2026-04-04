@@ -18,7 +18,7 @@ router.post('/sync', async (req, res) => {
       await Folder.findByIdAndUpdate(
         folder.id,
         { _id: folder.id, ...folder, userId, updatedAt: new Date() },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
     }
 
@@ -27,7 +27,7 @@ router.post('/sync', async (req, res) => {
       await Note.findByIdAndUpdate(
         note.id,
         { _id: note.id, ...note, userId, updatedAt: new Date() },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
     }
 
@@ -161,7 +161,7 @@ router.put('/notes/:id', async (req, res) => {
     const note = await Note.findByIdAndUpdate(
       id,
       { title, content, updatedAt: new Date() },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     res.status(200).json({

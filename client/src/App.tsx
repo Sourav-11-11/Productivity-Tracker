@@ -6,6 +6,7 @@ import { Progress } from "./pages/Progress";
 import { JobTracker } from "./pages/JobTracker";
 import Notes from "./pages/Notes";
 import { Onboarding } from "./pages/Onboarding";
+import { Accounts } from "./pages/Accounts";
 import { useOnboardingStore } from "./store/useOnboardingStore";
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
       {activeRoute === "progress" ? <Progress /> : null}
       {activeRoute === "jobs" ? <JobTracker /> : null}
       {activeRoute === "notes" ? <Notes /> : null}
+      {activeRoute === "accounts" ? <Accounts /> : null}
     </MainLayout>
   );
 }
