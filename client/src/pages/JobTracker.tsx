@@ -16,7 +16,6 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Sparkles, Plus, XCircle, BarChart2, Search, Filter, Loader2 } from 'lucide-react';
 
 const COLUMNS: JobStatus[] = ['Applied', 'OA', 'Interview', 'Offer', 'Rejected'];
 
@@ -39,15 +38,15 @@ const parseJobInput = (input: string) => {
 };
 
 const getUrgency = (deadline?: string) => {
-  if (!deadline) return { level: 'none', style: 'border-[#262626] text-[#A3A3A3]' };
+  if (!deadline) return { level: 'none', style: 'opacity-40' };
   const d = new Date(deadline + ' 2026');
-  if (isNaN(d.getTime())) return { level: 'none', style: 'border-[#262626] text-[#A3A3A3]' };
+  if (isNaN(d.getTime())) return { level: 'none', style: 'opacity-40' };
   const diffDays = Math.ceil((d.getTime() - Date.now()) / (1000 * 3600 * 24));
   
-  if (diffDays <= 1) return { level: 'critical', style: 'border-[#FAFAFA] text-[#FAFAFA]' };
-  if (diffDays <= 3) return { level: 'high', style: 'border-[#A3A3A3] text-[#A3A3A3]' };
-  if (diffDays <= 7) return { level: 'medium', style: 'border-[#525252] text-[#525252]' };
-  return { level: 'low', style: 'border-[#262626] text-[#A3A3A3]' };
+  if (diffDays <= 1) return { level: 'critical', style: 'text-[#FAFAFA] font-medium opacity-100' };
+  if (diffDays <= 3) return { level: 'high', style: 'text-[#FAFAFA] opacity-90' };
+  if (diffDays <= 7) return { level: 'medium', style: 'text-[#A3A3A3] opacity-80' };
+  return { level: 'low', style: 'text-[#525252] opacity-60' };
 };
 
 export function JobTracker() {
@@ -182,93 +181,97 @@ export function JobTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden overflow-y-auto text-[#FAFAFA] p-8 space-y-12">
+    <div className="min-h-screen bg-transparent overflow-x-hidden overflow-y-auto text-[#FAFAFA] p-12 lg:p-24 space-y-32 selection:bg-[#FAFAFA] selection:text-[#0A0A0A]">
        
+       <header className="max-w-7xl mx-auto flex flex-col items-start gap-4 animate-in fade-in slide-in-from-bottom-5 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]">
+         <h1 className="text-[10px] uppercase tracking-[0.5em] text-[#FAFAFA] font-medium">Trajectory</h1>
+         <p className="text-5xl font-light tracking-tighter text-[#A3A3A3] mix-blend-screen leading-tight">
+            Momentum Vector
+         </p>
+       </header>
+
        {/* Top Metrics */}
-       <div className="grid grid-cols-4 gap-6 max-w-7xl mx-auto border-b border-[#262626] pb-8">
+       <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-7xl mx-auto opacity-70 hover:opacity-100 transition-opacity duration-1000">
           {[
             { label: 'Total Apps', val: jobs.length, color: 'text-[#FAFAFA]' },
             { label: 'Active', val: activeCount, color: 'text-[#A3A3A3]' },
             { label: 'Offers', val: offerCount, color: 'text-[#FAFAFA]' },
             { label: 'Rejections', val: rejectedCount, color: 'text-[#525252]' }
           ].map((stat, i) => (
-             <div key={i} className="flex flex-col items-start justify-center">
-                <span className={`text-3xl font-medium tracking-tight ${stat.color}`}>{stat.val}</span>
-                <span className="text-xs text-[#525252] mt-1 uppercase tracking-wider font-semibold">{stat.label}</span>
+             <div key={i} className="flex flex-col items-start justify-center group cursor-default">
+                <span className={`text-6xl md:text-8xl font-light tracking-tighter transition-all duration-700 group-hover:blur-[1px] ${stat.color}`}>{stat.val}</span>
+                <span className="text-[10px] text-[#525252] mt-4 uppercase tracking-[0.3em] font-medium transition-colors duration-700 group-hover:text-[#FAFAFA]">{stat.label}</span>
              </div>
           ))}
        </div>
 
-       <div className="max-w-7xl mx-auto space-y-12">
+       <div className="max-w-7xl mx-auto space-y-24 animate-in fade-in duration-[2000ms] delay-300 fill-mode-both ease-[cubic-bezier(0.16,1,0.3,1)]">
           {/* Controls */}
-          <div className="flex flex-col md:flex-row gap-6 border-b border-[#262626] pb-8">
-             <form onSubmit={handleAddJob} className="flex-1">
-                <div className="bg-[#141414] border border-[#262626] rounded flex items-center p-1 focus-within:border-[#525252] transition-colors">
+          <div className="flex flex-col md:flex-row gap-16 md:gap-32 w-full">
+             <form onSubmit={handleAddJob} className="flex-1 opacity-60 hover:opacity-100 transition-opacity duration-700">
+                <div className="flex items-end border-b border-[#262626]/50 pb-4 focus-within:border-[#FAFAFA] transition-colors duration-500">
                     <input
                         type="text"
-                        placeholder="e.g., Amazon SDE Intern 20 Aug"
-                        className="flex-1 bg-transparent border-none outline-none text-[#FAFAFA] placeholder-[#525252] px-4 py-2"
+                        placeholder="Commit e.g., Amazon SDE 20 Aug"
+                        className="flex-1 bg-transparent border-none outline-none text-2xl font-light tracking-tight text-[#FAFAFA] placeholder-[#262626]"
                         value={smartInput}
                         onChange={(e) => setSmartInput(e.target.value)}
                     />
                     <button
                         type="submit"
-                        className="bg-[#FAFAFA] text-[#0A0A0A] hover:bg-[#E5E5E5] px-6 py-2 rounded font-medium transition-colors"
+                        className="text-[10px] uppercase tracking-widest text-[#525252] hover:text-[#FAFAFA] disabled:opacity-30 pb-2 transition-colors duration-500"
                         disabled={!smartInput.trim()}
                     >
-                        Add
+                        Implant
                     </button>
                 </div>
             </form>
             
-            <div className="flex gap-4 items-center">
-               <div className="w-64 bg-[#141414] border border-[#262626] rounded flex items-center px-4 py-3">
-                 <Search className="w-4 h-4 text-[#525252] mr-3" />
+            <div className="flex gap-12 items-end border-b border-[#262626]/50 pb-4 opacity-40 hover:opacity-100 transition-opacity duration-700">
+               <div className="flex items-center min-w-[200px]">
                  <input 
                    type="text" 
-                   placeholder="Search..."
-                   className="bg-transparent border-none outline-none text-sm text-[#FAFAFA] placeholder-[#525252] w-full"
+                   placeholder="Scan vector..."
+                   className="bg-transparent border-none outline-none text-sm font-light tracking-widest text-[#FAFAFA] placeholder-[#262626] w-full"
                    value={searchTerm}
                    onChange={e => setSearchTerm(e.target.value)}
                  />
                </div>
-               <div className="bg-[#141414] border border-[#262626] rounded flex items-center px-4 py-3">
-                 <Filter className="w-4 h-4 text-[#525252] mr-3" />
+               <div className="flex items-center h-full">
                  <select 
-                   className="bg-transparent border-none outline-none text-sm text-[#FAFAFA] appearance-none min-w-[120px] cursor-pointer"
+                   className="bg-transparent border-none outline-none text-[10px] uppercase tracking-[0.2em] text-[#FAFAFA] appearance-none cursor-pointer"
                    value={filter}
                    onChange={e => setFilter(e.target.value)}
                  >
-                   <option>All</option>
-                   <option>Deadline Soon</option>
+                   <option>Synchronized</option>
+                   <option>Deadline Approach</option>
                  </select>
                </div>
             </div>
           </div>
 
           {/* AI Analysis View (Clean) */}
-          <div className="border border-[#262626] rounded p-6 bg-[#0A0A0A]">
-             <div className="flex items-center justify-between mb-4">
-                 <div className="flex items-center gap-2">
-                     <BarChart2 className="w-4 h-4 text-[#FAFAFA]" />
-                     <h3 className="font-medium text-[#FAFAFA]">AI Strategy</h3>
+          <div className="opacity-70 hover:opacity-100 transition-opacity duration-1000 space-y-12">
+             <div className="flex items-center justify-between mb-4 border-b border-[#141414]/30 pb-4">
+                 <div className="flex items-center gap-4">
+                     <h3 className="text-[10px] uppercase tracking-[0.3em] font-medium text-[#FAFAFA]">Synthesis</h3>
                  </div>
-                 <button onClick={fetchAIInsights} disabled={isAnalyzing} className="text-[#A3A3A3] hover:text-[#FAFAFA] text-sm flex items-center gap-2 transition-colors disabled:opacity-50">
-                     {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4" />}
-                     {isAnalyzing ? 'Analyzing...' : 'Analyze Now'}
+                 <button onClick={fetchAIInsights} disabled={isAnalyzing} className="text-[#525252] hover:text-[#FAFAFA] text-[10px] uppercase tracking-[0.2em] transition-colors disabled:opacity-50">
+                     {isAnalyzing ? 'Processing...' : 'Engage Logic'}
                  </button>
              </div>
              
              {aiError && (
-                 <div className="text-red-400 text-sm mb-4">
-                     {aiError} <button onClick={fetchAIInsights} className="underline ml-2">Retry</button>
+                 <div className="text-red-400 text-xs tracking-widest uppercase mb-4">
+                     {aiError} <button onClick={fetchAIInsights} className="underline ml-4">Retry</button>
                  </div>
              )}
              
              {isAnalyzing ? (
-                 <div className="animate-pulse space-y-4 py-4">
-                     <div className="h-4 bg-[#141414] rounded w-3/4"></div>
-                     <div className="h-10 bg-[#141414] rounded w-full"></div>
+                 <div className="animate-pulse space-y-6 opacity-30 py-4">
+                     <div className="h-[1px] bg-[#FAFAFA] w-1/4"></div>
+                     <div className="h-[1px] bg-[#525252] w-full"></div>
+                     <div className="h-[1px] bg-[#525252] w-3/4"></div>
                  </div>
              ) : aiData ? (
                  <div className="space-y-8 mt-6">
@@ -282,10 +285,7 @@ export function JobTracker() {
                              <p className="text-sm text-[#A3A3A3] uppercase tracking-wider font-semibold mb-3">Productivity Insights</p>
                              <ul className="space-y-3">
                                  {aiData.productivity?.insights?.map((t: string, i: number) => (
-                                     <li key={i} className="flex gap-2 text-sm text-[#A3A3A3]">
-                                         <span className="text-[#FAFAFA] mt-0.5">•</span>
-                                         <span>{t}</span>
-                                     </li>
+                                     <li key={i} className="text-sm text-[#A3A3A3] font-light"><span className="text-[#FAFAFA] mr-2">•</span>{t}</li>
                                  ))}
                              </ul>
                          </div>
@@ -293,20 +293,13 @@ export function JobTracker() {
                              <p className="text-sm text-[#A3A3A3] uppercase tracking-wider font-semibold mb-3">Placement Insights</p>
                              <ul className="space-y-3">
                                  {aiData.placement?.insights?.map((t: string, i: number) => (
-                                     <li key={i} className="flex gap-2 text-sm text-[#A3A3A3]">
-                                         <span className="text-[#FAFAFA] mt-0.5">•</span>
-                                         <span>{t}</span>
-                                     </li>
+                                     <li key={i} className="text-sm text-[#A3A3A3] font-light"><span className="text-[#FAFAFA] mr-2">•</span>{t}</li>
                                  ))}
                              </ul>
                          </div>
-                     </div>
+                      </div>
                  </div>
-             ) : (
-                 <div className="py-8 text-center text-[#525252]">
-                     <p className="text-sm">Click Analyze to generate strategic insights for your job hunt.</p>
-                 </div>
-             )}
+             ) : null}
           </div>
 
           <div className="overflow-x-auto pb-8">
@@ -351,46 +344,42 @@ function DraggableJob({ job, updateJobStatus, onAddPrepTask }: { job: Job, updat
       style={style}
       {...attributes}
       {...listeners}
-      className={`p-4 mb-4 rounded bg-[#0A0A0A] border ${urgency.style} group transition-all ${isDragging ? 'opacity-50' : 'cursor-grab hover:border-[#525252]'}`}
+      className={`py-6 mb-8 group transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isDragging ? 'opacity-20 scale-95' : 'cursor-grab hover:-translate-y-1'}`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-base text-[#FAFAFA]">{job.company}</h3>
+      <div className="flex flex-col items-start gap-1 w-full relative">
+        <h3 className="text-2xl font-light tracking-tight text-[#FAFAFA] opacity-80 group-hover:opacity-100 transition-opacity truncate w-full">{job.company}</h3>
+        <p className="text-xs font-light tracking-wide text-[#A3A3A3]">{job.role}</p>
+
         {job.deadline && (
-           <div className={`text-xs font-semibold px-2 py-1 bg-[#141414] rounded border ${urgency.style}`}>
+           <div className={`mt-3 text-[10px] uppercase tracking-[0.2em] transition-opacity duration-700 ${urgency.style}`}>
               {job.deadline}
            </div>
         )}
       </div>
-      <div className="text-sm text-[#A3A3A3] mb-4">
-        <p>{job.role}</p>
-      </div>
       
-      <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity duration-700 mt-6 min-h-[20px]">
         <button
           onPointerDown={(e) => { e.stopPropagation(); onAddPrepTask(job.id); }}
-          className="text-xs text-[#A3A3A3] hover:text-[#FAFAFA] transition-colors flex items-center gap-1"
+          className="text-[10px] uppercase tracking-[0.2em] text-[#525252] hover:text-[#FAFAFA] transition-colors"
         >
-          <Plus className="w-3 h-3" /> Prep
+          Prime
         </button>
-        <div className="flex gap-3">
-          {ns && (
-              <button
-                onPointerDown={(e) => { e.stopPropagation(); updateJobStatus(job.id, ns); }}
-                className="text-xs text-[#A3A3A3] hover:text-[#FAFAFA] transition-colors"
-              >
-                  Next
-              </button>
-          )}
-          {job.status !== 'Rejected' && (
-              <button
-                title="Reject"
-                onPointerDown={(e) => { e.stopPropagation(); updateJobStatus(job.id, 'Rejected'); }}
-                className="text-[#525252] hover:text-red-400 transition-colors"
-              >
-                  <XCircle className="w-4 h-4" />
-              </button>
-          )}
-        </div>
+        {ns && (
+            <button
+              onPointerDown={(e) => { e.stopPropagation(); updateJobStatus(job.id, ns); }}
+              className="text-[10px] uppercase tracking-[0.2em] text-[#525252] hover:text-[#FAFAFA] transition-colors"
+            >
+                Advance
+            </button>
+        )}
+        {job.status !== 'Rejected' && (
+            <button
+              onPointerDown={(e) => { e.stopPropagation(); updateJobStatus(job.id, 'Rejected'); }}
+              className="text-[10px] uppercase tracking-[0.2em] text-[#525252] hover:text-red-400 transition-colors"
+            >
+                Eject
+            </button>
+        )}
       </div>
     </div>
   );
@@ -402,15 +391,15 @@ function DroppableColumn({ status, colJobs, updateJobStatus, onAddPrepTask }: { 
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[320px] rounded bg-[#141414] border border-[#262626] flex flex-col transition-colors ${isOver ? 'bg-[#1A1A1A] border-[#525252]' : ''}`}
+      className={`flex-1 min-w-[320px] max-w-[400px] flex flex-col transition-all duration-1000 ${isOver ? 'opacity-100 scale-[1.02]' : 'opacity-80 hover:opacity-100'}`}
     >
-      <div className="flex items-center justify-between p-4 border-b border-[#262626]">
-        <h2 className="font-medium text-sm tracking-wider uppercase text-[#A3A3A3]">{status}</h2>
-        <span className="text-xs font-semibold text-[#525252]">
+      <div className="flex items-center justify-between p-4 border-b border-[#141414]/50 mb-8">
+        <h2 className="text-[10px] font-medium tracking-[0.4em] uppercase text-[#FAFAFA] opacity-50">{status}</h2>
+        <span className="text-[10px] tracking-widest text-[#525252]">
           {colJobs.length}
         </span>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto min-h-[500px]">
+      <div className="flex-1 px-4 overflow-y-auto min-h-[500px]">
         {colJobs.map((job) => (
           <DraggableJob key={job.id} job={job} updateJobStatus={updateJobStatus} onAddPrepTask={onAddPrepTask} />
         ))}

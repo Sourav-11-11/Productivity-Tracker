@@ -1,5 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
+import { Brain, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { useOnboardingStore } from '../store/useOnboardingStore';
 
 const QUOTES = [
   "Discipline beats motivation.",
@@ -43,17 +46,32 @@ interface DailyStats {
 
 export const Progress: React.FC = () => {
   const { tasks } = useStore();
+  const { primaryGoal } = useOnboardingStore();
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const dailyStats = useMemo(() => {
     const stats: { [key: string]: DailyStats } = {};
+    const timetable = JSON.parse(localStorage.getItem('daily_timetable') || '[]');
+    const totalRoutineItems = timetable.length;
     
     for (let i = 29; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       stats[dateStr] = { date: dateStr, completed: 0, total: 0, percentage: 0 };
+
+      // Incorporate Timetable Completions
+      const dailyCompsStr = localStorage.getItem(`timetable_comps_${dateStr}`);
+      if (dailyCompsStr && totalRoutineItems > 0) {
+          const comps = JSON.parse(dailyCompsStr);
+          const completedCount = Object.values(comps).filter(v => v === true).length;
+          stats[dateStr].total += totalRoutineItems;
+          stats[dateStr].completed += completedCount;
+      }
     }
 
+    // Incorporate Store Tasks
     tasks.forEach(task => {
       const createdDate = new Date(task.createdAt).toISOString().split('T')[0];
       if (stats[createdDate]) {
@@ -74,31 +92,57 @@ export const Progress: React.FC = () => {
   }, [tasks]);
 
   const { currentStreak, longestStreak } = useMemo(() => {
-    let current = 0;
+    const streakData = JSON.parse(localStorage.getItem('streak_history') || '[]');
     let longest = 0;
     let tempStreak = 0;
-
-    for (let i = dailyStats.length - 1; i >= 0; i--) {
-      if (dailyStats[i].percentage >= 60) {
-        tempStreak++;
-      } else {
-        if (tempStreak > longest) longest = tempStreak;
-        tempStreak = 0;
-      }
+    
+    // Sort dates
+    streakData.sort();
+    
+    for (let i = 0; i < streakData.length; i++) {
+        if (i === 0) {
+            tempStreak = 1;
+        } else {
+            const currDate = new Date(streakData[i]);
+            const prevDate = new Date(streakData[i - 1]);
+            const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                tempStreak++;
+            } else if (diffDays > 1) {
+                if (tempStreak > longest) longest = tempStreak;
+                tempStreak = 1;
+            }
+        }
     }
+    if (tempStreak > longest) longest = tempStreak;
 
-    const today = new Date().toISOString().split('T')[0];
+    // Check if current streak involves today or yesterday
+    const todayStr = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    if (dailyStats[dailyStats.length - 1].date === today && dailyStats[dailyStats.length - 1].percentage >= 60) {
-      current = tempStreak;
-    } else if (dailyStats[dailyStats.length - 1].date === yesterdayStr && dailyStats[dailyStats.length - 1].percentage >= 60) {
-      current = tempStreak;
+    let current = 0;
+    if (streakData.includes(todayStr) || streakData.includes(yesterdayStr)) {
+        // Compute current streak by walking backward
+        let checkDate = new Date();
+        if (!streakData.includes(todayStr)) {
+            checkDate = yesterday;
+        }
+        let walkStreak = 0;
+        
+        while (true) {
+            const checkStr = checkDate.toISOString().split('T')[0];
+            if (streakData.includes(checkStr)) {
+                walkStreak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        current = walkStreak;
     }
-
-    if (tempStreak > longest) longest = tempStreak;
 
     return { currentStreak: current, longestStreak: longest };
   }, [dailyStats]);
@@ -109,141 +153,162 @@ export const Progress: React.FC = () => {
     return QUOTES[dayOfYear % QUOTES.length];
   }, []);
 
-  const getColorClass = (percentage: number): string => {
-    if (percentage === 0) return 'bg-[#141414] border border-[#262626]';
-    if (percentage <= 25) return 'bg-[#262626]';
-    if (percentage <= 50) return 'bg-[#525252]';
-    if (percentage <= 75) return 'bg-[#A3A3A3]';
-    return 'bg-[#FAFAFA]';
+  const handleAIAnalysis = async () => {
+    setIsAnalyzing(true);
+    setAiAnalysis(null);
+    try {
+      const res = await fetch('http://localhost:5000/api/ai/analyze-full', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          tasks, 
+          jobs: [], 
+          userContext: { goal: primaryGoal, dailyStats, currentStreak }
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiAnalysis(data.actionableFocus || "Keep pushing forward with your daily goals.");
+      }
+    } catch (e) {
+      console.error(e);
+      setAiAnalysis("Failed to load AI insights. Ensure backend is running.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Custom Tooltip for Recharts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#262626] rounded-xl px-4 py-3 shadow-[0_0_30px_rgba(250,250,250,0.05)]">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#525252] mb-1">{label}</p>
+          <p className="text-xl font-light text-[#FAFAFA]">{payload[0].value}<span className="text-sm text-[#A3A3A3]">%</span></p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <div className="min-h-full bg-[#0A0A0A] py-12 px-6">
-      <div className="max-w-4xl mx-auto space-y-12">
-        {/* Header */}
-        <header className="space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-[#FAFAFA]">Progress</h1>
-          <p className="text-[#A3A3A3] text-base">Track your consistency and maintain velocity.</p>
+    <div className="min-h-full bg-transparent py-10 px-8 text-[#FAFAFA] font-sans">
+      
+      {/* Background Ambience */}
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#141414]/20 via-[#0A0A0A] to-[#0A0A0A]" />
+
+      <div className="max-w-6xl mx-auto space-y-24 mt-10">
+        
+        {/* Kinetic Header */}
+        <header className="flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <div className="text-[10px] uppercase tracking-[0.4em] text-[#A3A3A3] font-medium opacity-50">Energy & Consistency</div>
+          <h1 className="text-5xl md:text-7xl font-light tracking-tighter mix-blend-screen text-transparent bg-clip-text bg-gradient-to-b from-[#FAFAFA] to-[#525252]">
+            {currentStreak} <span className="text-[#525252]">Days</span>
+          </h1>
+          <p className="text-sm font-light text-[#A3A3A3] max-w-sm mt-4 text-center leading-relaxed">
+            "{todayQuote}"
+          </p>
         </header>
 
-        {/* Daily Quote */}
-        <div className="bg-[#141414] border border-[#262626] rounded-xl p-6 flex flex-col justify-center">
-          <p className="text-lg text-[#FAFAFA] font-medium tracking-wide">"{todayQuote}"</p>
-          <p className="text-xs text-[#525252] mt-3 uppercase tracking-widest font-semibold">Today's Focus</p>
-        </div>
-
-        {/* Streak Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#141414] border border-[#262626] rounded-xl p-8 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#FAFAFA] rounded-full blur-[80px] -mr-10 -mt-10 opacity-5 group-hover:opacity-10 transition-opacity duration-500" />
-            <p className="text-sm text-[#A3A3A3] mb-4 font-medium uppercase tracking-wider">Current Streak</p>
-            <div className="flex items-baseline gap-3 relative z-10">
-              <span className="text-6xl font-bold text-[#FAFAFA] tracking-tighter tabular-nums">{currentStreak}</span>
-              <span className="text-[#525252] font-semibold text-lg">Days</span>
-            </div>
-          </div>
-
-          <div className="bg-[#141414] border border-[#262626] rounded-xl p-8 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#FAFAFA] rounded-full blur-[80px] -mr-10 -mt-10 opacity-5 group-hover:opacity-10 transition-opacity duration-500" />
-            <p className="text-sm text-[#A3A3A3] mb-4 font-medium uppercase tracking-wider">Best Streak</p>
-            <div className="flex items-baseline gap-3 relative z-10">
-              <span className="text-6xl font-bold text-[#FAFAFA] tracking-tighter tabular-nums">{longestStreak}</span>
-              <span className="text-[#525252] font-semibold text-lg">Days</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Streak Calendar */}
-        <section className="bg-[#141414] border border-[#262626] rounded-xl p-8">
-          <div className="flex items-center justify-between border-b border-[#262626] pb-6 mb-8">
-            <h2 className="text-lg font-medium text-[#FAFAFA]">Activity Heatmap</h2>
-            <span className="text-sm text-[#A3A3A3] bg-[#0A0A0A] px-3 py-1 rounded-full border border-[#262626]">Last 30 Days</span>
-          </div>
+        {/* Ethereal Analytics Flow */}
+        <section className="relative w-full h-[400px] animate-in fade-in zoom-in-95 duration-1000 delay-300 ease-[cubic-bezier(0.16,1,0.3,1)] fill-mode-both">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dailyStats} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorPercentage" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#FAFAFA" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#FAFAFA" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#262626', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Area 
+                type="monotone" 
+                dataKey="percentage" 
+                stroke="#FAFAFA" 
+                strokeWidth={2}
+                fillOpacity={1} 
+                fill="url(#colorPercentage)" 
+                animationDuration={2500}
+                animationEasing="ease-in-out"
+                activeDot={{ r: 4, stroke: '#0A0A0A', strokeWidth: 2, fill: '#FAFAFA' }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
           
-          <div className="max-w-md mx-auto">
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
-              {/* Day headers */}
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                <div key={`${day}-${i}`} className="text-center text-xs text-[#525252] font-semibold mb-2">
-                  {day}
-                </div>
-              ))}
-
-              {/* Calendar cells */}
-              {dailyStats.map((stat, idx) => {
-                const dayOfWeek = new Date(stat.date).getDay();
-                
-                const emptyCells = idx === 0 ? Array.from({ length: dayOfWeek }).map((_, i) => (
-                   <div key={`empty-${i}`} className="aspect-square rounded pointer-events-none" />
-                )) : [];
-
-                return (
-                  <React.Fragment key={stat.date}>
-                    {emptyCells}
-                    <div
-                      className={`aspect-square rounded transition-all duration-300 ${getColorClass(stat.percentage)} cursor-pointer relative group flex items-center justify-center hover:ring-2 hover:ring-[#A3A3A3] hover:ring-offset-2 hover:ring-offset-[#141414]`}
-                    >
-                      <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-[#262626] text-[#FAFAFA] text-xs py-1.5 px-3 rounded shadow-xl -top-12 pointer-events-none whitespace-nowrap z-10 border border-[#404040]">
-                        <p className="font-semibold">{stat.completed}/{stat.total} tasks</p>
-                        <p className="text-[#A3A3A3] text-[10px] mt-0.5">{stat.date}</p>
-                      </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-3 pt-8 mt-4 border-t border-[#262626]">
-              <span className="text-xs font-medium text-[#525252]">Less</span>
-              <div className="flex gap-1.5">
-                {[
-                  'bg-[#0A0A0A] border border-[#262626]',
-                  'bg-[#262626]',
-                  'bg-[#525252]',
-                  'bg-[#A3A3A3]',
-                  'bg-[#FAFAFA]'
-                ].map((color, i) => (
-                  <div key={i} className={`w-3.5 h-3.5 rounded-sm ${color}`} />
-                ))}
-              </div>
-              <span className="text-xs font-medium text-[#525252]">More</span>
-            </div>
+          {/* Chart Overlay Gradients for smooth fade out at edges */}
+          <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0A0A0A] to-transparent pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#0A0A0A] to-transparent pointer-events-none" />
+          
+          <div className="absolute top-0 right-0 p-4 pointer-events-none">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#525252]">30 Day Velocity</span>
           </div>
         </section>
 
-        {/* Summary Stats Container */}
-        <section className="bg-[#141414] border border-[#262626] rounded-xl p-8">
-          <div className="flex items-center justify-between border-b border-[#262626] pb-6 mb-8">
-            <h2 className="text-lg font-medium text-[#FAFAFA]">Summary</h2>
-          </div>
+        {/* Minimal Synced Stats */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-10 border-t border-[#141414]/50 pt-10 animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-500 fill-mode-both">
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 bg-[#0A0A0A] border border-[#262626] rounded-xl transition-colors hover:border-[#404040]">
-              <p className="text-xs text-[#A3A3A3] mb-2 uppercase tracking-wider font-semibold">Total Tasks</p>
-              <p className="text-4xl font-semibold text-[#FAFAFA] tabular-nums">{dailyStats.reduce((sum, d) => sum + d.total, 0)}</p>
-            </div>
-
-            <div className="p-6 bg-[#0A0A0A] border border-[#262626] rounded-xl transition-colors hover:border-[#404040]">
-              <p className="text-xs text-[#A3A3A3] mb-2 uppercase tracking-wider font-semibold">Completed</p>
-              <p className="text-4xl font-semibold text-[#FAFAFA] tabular-nums">{dailyStats.reduce((sum, d) => sum + d.completed, 0)}</p>
-            </div>
-
-            <div className="p-6 bg-[#0A0A0A] border border-[#262626] rounded-xl transition-colors hover:border-[#404040]">
-              <p className="text-xs text-[#A3A3A3] mb-2 uppercase tracking-wider font-semibold">Overall %</p>
-              <p className="text-4xl font-semibold text-[#FAFAFA] tabular-nums">
-                {dailyStats.reduce((sum, d) => sum + d.total, 0) > 0
-                  ? Math.round(
-                      (dailyStats.reduce((sum, d) => sum + d.completed, 0) /
-                        dailyStats.reduce((sum, d) => sum + d.total, 0)) *
-                        100
-                    )
-                  : 0}
-                %
-              </p>
-            </div>
+          <div className="flex flex-col items-center justify-center space-y-3 group cursor-default">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#525252] group-hover:text-[#A3A3A3] transition-colors">Longest State</p>
+            <p className="text-4xl font-light tracking-tighter text-[#FAFAFA]">{longestStreak} <span className="text-lg text-[#525252]">Days</span></p>
           </div>
+
+          <div className="flex flex-col items-center justify-center space-y-3 group cursor-default">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#525252] group-hover:text-[#A3A3A3] transition-colors">Actions Completed</p>
+            <p className="text-4xl font-light tracking-tighter text-[#FAFAFA]">{dailyStats.reduce((sum: number, d: any) => sum + d.completed, 0)}</p>
+          </div>
+
+          <div className="flex flex-col items-center justify-center space-y-3 group cursor-default">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#525252] group-hover:text-[#A3A3A3] transition-colors">Algorithmic Balance</p>
+            <p className="text-4xl font-light tracking-tighter text-[#FAFAFA]">
+              {dailyStats.reduce((sum: number, d: any) => sum + d.total, 0) > 0
+                ? Math.round((dailyStats.reduce((sum: number, d: any) => sum + d.completed, 0) / dailyStats.reduce((sum: number, d: any) => sum + d.total, 0)) * 100)
+                : 0}
+              <span className="text-lg text-[#525252]">%</span>
+            </p>
+          </div>
+
+        </section>
+
+        {/* AI Analytics Integration */}
+        <section className="pt-10 pb-20 border-t border-[#141414]/50 animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-700 fill-mode-both max-w-3xl mx-auto">
+            <div className="flex flex-col items-center text-center space-y-6">
+                <Brain className="w-8 h-8 text-[#A3A3A3] opacity-50" />
+                <h2 className="text-xl font-light tracking-wide text-[#FAFAFA]">System Analysis</h2>
+                <p className="text-sm font-light text-[#A3A3A3]">Generate an intelligent overview of your current progress and momentum to find the best way forward.</p>
+                
+                {!aiAnalysis && !isAnalyzing && (
+                    <button 
+                        onClick={handleAIAnalysis}
+                        className="mt-4 px-6 py-2.5 bg-[#FAFAFA] text-[#0A0A0A] text-xs uppercase tracking-widest font-medium rounded hover:scale-105 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Sparkles className="w-4 h-4" /> Synthesize Insights
+                    </button>
+                )}
+
+                {isAnalyzing && (
+                    <div className="flex items-center justify-center gap-2 text-[#525252] animate-pulse mt-4">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-xs uppercase tracking-widest">Processing Data Vectors...</span>
+                    </div>
+                )}
+
+                {aiAnalysis && (
+                    <div className="w-full mt-6 bg-[#0F0F0F] border border-[#262626] rounded-xl p-8 relative overflow-hidden group text-left">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FAFAFA]/5 to-transparent rounded-full blur-3xl" />
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs uppercase tracking-[0.2em] font-medium text-[#FAFAFA] flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5" /> AI Feedback
+                            </h3>
+                            <button onClick={handleAIAnalysis} className="text-[#525252] hover:text-[#FAFAFA] transition-colors" title="Regenerate">
+                                <RefreshCw className="w-4 h-4"/>
+                            </button>
+                        </div>
+                        <p className="text-sm font-light text-[#A3A3A3] leading-relaxed whitespace-pre-wrap">
+                            {aiAnalysis}
+                        </p>
+                    </div>
+                )}
+            </div>
         </section>
 
       </div>

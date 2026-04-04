@@ -6,6 +6,8 @@ interface NotesStore {
   folders: Folder[];
   notes: Note[];
   syncInProgress: boolean;
+  deletingNoteId: string | null;
+  deletingFolderId: string | null;
 
   // Actions
   addFolder: (name: string) => Promise<void>;
@@ -15,6 +17,7 @@ interface NotesStore {
   deleteNote: (noteId: string) => Promise<void>;
   loadFromDB: () => Promise<void>;
   syncToCloud: () => Promise<void>;
+  clearDeleteStates: () => void;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -23,6 +26,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   folders: [],
   notes: [],
   syncInProgress: false,
+  deletingNoteId: null,
+  deletingFolderId: null,
 
   // Load all data from Dexie
   loadFromDB: async () => {
@@ -57,22 +62,31 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   // Delete a folder and all its notes
   deleteFolder: async (folderId: string) => {
     try {
-      // Delete all notes in this folder
+      set({ deletingFolderId: folderId });
+      
+      // Call backend DELETE endpoint to ensure it's removed from cloud
+      await fetch(`${API_BASE}/notes/folders/${folderId}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Failed to delete folder from cloud immediately:', err));
+
+      // Delete all notes in this folder locally
       const notesToDelete = get().notes.filter((n) => n.folderId === folderId);
-      for (const note of notesToDelete) {
-        await db.notes.delete(note.id);
+      if (notesToDelete.length > 0) {
+        await db.notes.bulkDelete(notesToDelete.map((n) => n.id));
       }
 
-      // Delete the folder
+      // Delete the folder locally
       await db.folders.delete(folderId);
 
       const { folders, notes } = get();
       set({
         folders: folders.filter((f) => f.id !== folderId),
         notes: notes.filter((n) => n.folderId !== folderId),
+        deletingFolderId: null,
       });
     } catch (error) {
       console.error('Error deleting folder:', error);
+      set({ deletingFolderId: null });
       throw error;
     }
   },
@@ -101,8 +115,14 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   // Update an existing note
   updateNote: async (noteId: string, title: string, content: string) => {
     try {
+      const existingNote = await db.notes.get(noteId);
+      if (!existingNote) {
+        console.warn(`Note ${noteId} not found for update`);
+        return;
+      }
+
       const updatedNote: Note = {
-        ...(await db.notes.get(noteId))!,
+        ...existingNote,
         title,
         content,
         updatedAt: Date.now(),
@@ -122,13 +142,30 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   // Delete a note
   deleteNote: async (noteId: string) => {
     try {
+      set({ deletingNoteId: noteId });
+      
+      // Call backend DELETE endpoint to ensure it's removed from cloud
+      await fetch(`${API_BASE}/notes/${noteId}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Failed to delete note from cloud immediately:', err));
+
+      // Remove locally
       await db.notes.delete(noteId);
       const { notes } = get();
-      set({ notes: notes.filter((n) => n.id !== noteId) });
+      set({ 
+        notes: notes.filter((n) => n.id !== noteId),
+        deletingNoteId: null,
+      });
     } catch (error) {
       console.error('Error deleting note:', error);
+      set({ deletingNoteId: null });
       throw error;
     }
+  },
+
+  // Clear deletion state
+  clearDeleteStates: () => {
+    set({ deletingNoteId: null, deletingFolderId: null });
   },
 
   // Sync with cloud (MongoDB)
