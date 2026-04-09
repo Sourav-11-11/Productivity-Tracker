@@ -11,6 +11,7 @@ interface NotesStore {
 
   // Actions
   addFolder: (name: string) => Promise<void>;
+  updateFolder: (folderId: string, name: string) => Promise<void>;
   deleteFolder: (folderId: string) => Promise<void>;
   addNote: (folderId: string, title: string, content?: string) => Promise<void>;
   updateNote: (noteId: string, title: string, content: string) => Promise<void>;
@@ -55,6 +56,32 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       set({ folders: [...folders, folder] });
     } catch (error) {
       console.error('Error adding folder:', error);
+      throw error;
+    }
+  },
+
+  // Update an existing folder
+  updateFolder: async (folderId: string, name: string) => {
+    try {
+      const existingFolder = await db.folders.get(folderId);
+      if (!existingFolder) {
+        console.warn(`Folder ${folderId} not found for update`);
+        return;
+      }
+
+      const updatedFolder: Folder = {
+        ...existingFolder,
+        name,
+        updatedAt: Date.now(),
+      };
+
+      await db.folders.put(updatedFolder);
+      const { folders } = get();
+      set({
+        folders: folders.map((f) => (f.id === folderId ? updatedFolder : f)),
+      });
+    } catch (error) {
+      console.error('Error updating folder:', error);
       throw error;
     }
   },

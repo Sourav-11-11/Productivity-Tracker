@@ -1,6 +1,16 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
-const { analyzeFullSystem, generateDailyPlan } = require('../services/aiService');
+const { analyzeFullSystem, generateDailyPlan, generatePitch } = require('../services/aiService');
+
+router.post('/generate-pitch', async (req, res) => {
+  try {
+    const { company, role, userContext } = req.body;
+    const pitch = await generatePitch({ company, role, userContext });
+    res.status(200).json({ pitch });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 router.post('/analyze-full', async (req, res) => {
   const { tasks, jobs, userContext } = req.body;

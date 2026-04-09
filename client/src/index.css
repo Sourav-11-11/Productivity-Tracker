@@ -39,3 +39,9 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
 }
+
+@layer utilities {
+  .animate-custom {
+    @apply transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)];
+  }
+}

@@ -5,6 +5,7 @@ type TimerMode = 'FOCUS' | 'REST';
 
 export const PomodoroTimer: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isGrindMode, setIsGrindMode] = useState(false);
   const [mode, setMode] = useState<TimerMode>('FOCUS');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -64,17 +65,50 @@ export const PomodoroTimer: React.FC = () => {
       <audio ref={audioRef} src="https://assets.mixkit.co/tests/beep.mp3" preload="auto" />
       
       {/* Floating Toggle Button */}
-      {!isOpen && (
+      {!isOpen && !isGrindMode && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-8 right-8 w-14 h-14 bg-[#FAFAFA] text-[#0A0A0A] rounded-full shadow-[0_0_20px_rgba(250,250,250,0.2)] flex items-center justify-center hover:scale-105 transition-all z-50"
+          className="fixed bottom-8 right-8 w-14 h-14 bg-[#FAFAFA] text-[#0A0A0A] rounded-full shadow-[0_0_20px_rgba(250,250,250,0.2)] flex items-center justify-center hover:scale-105 transition-all z-[50]"
         >
-           <Coffee className="w-6 h-6" />
+          <Coffee className="w-6 h-6" />
         </button>
       )}
 
+      {/* GRIND MODE OVERLAY (FULLSCREEN) */}
+      {isGrindMode && (
+        <div className="fixed inset-0 bg-[#000000] z-[100] flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
+          <button onClick={() => setIsGrindMode(false)} className="absolute top-10 right-10 text-[#525252] hover:text-[#FAFAFA] transition-colors rounded p-1 hover:bg-[#1A1A1A]">
+            <X className="w-8 h-8" />
+          </button>
+          
+          <div className="text-[12rem] md:text-[18rem] font-light tracking-tighter text-[#FAFAFA] tabular-nums drop-shadow-[0_0_50px_rgba(250,250,250,0.1)]">
+            {formatTime(timeLeft)}
+          </div>
+
+          <div className="text-xl uppercase tracking-[1em] text-[#A3A3A3] mt-2 flex items-center justify-center gap-4">
+            {mode === 'FOCUS' ? <Brain className="w-6 h-6" /> : <Coffee className="w-6 h-6" />}
+            {mode === 'FOCUS' ? 'GRIND MODE' : 'RECOVERY'}
+          </div>
+
+          <div className="flex items-center justify-center gap-8 mt-20">
+            <button
+              onClick={toggleTimer}
+              className="w-24 h-24 bg-[#FAFAFA] text-[#0A0A0A] rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-[0_0_30px_rgba(250,250,250,0.2)]"
+            >
+              {isActive ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-2" />}
+            </button>
+            <button
+              onClick={resetTimer}
+              className="w-16 h-16 bg-[#1A1A1A] border border-[#262626] text-[#A3A3A3] rounded-full flex items-center justify-center hover:text-[#FAFAFA] hover:border-[#525252] transition-colors"
+            >
+              <RotateCcw className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Floating Timer Widget */}
-      {isOpen && (
+      {isOpen && !isGrindMode && (
         <div className="fixed bottom-8 right-8 w-80 bg-[#0F0F0F] border border-[#262626] rounded-2xl shadow-2xl p-6 z-50 animate-in slide-in-from-bottom-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-2 p-1 bg-[#141414] rounded-lg">
@@ -108,6 +142,13 @@ export const PomodoroTimer: React.FC = () => {
               {mode === 'FOCUS' ? <Brain className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
               {mode === 'FOCUS' ? 'Deep Work' : 'Recovery'}
             </div>
+            
+            <button 
+               onClick={() => { setIsGrindMode(true); setIsOpen(false); }}
+               className="mt-8 w-full py-3 bg-[#1A1A1A] border border-[#262626] hover:bg-[#FAFAFA] hover:text-[#0A0A0A] text-[#A3A3A3] uppercase tracking-widest text-[10px] rounded-lg transition-all"
+            >
+               Enter Grind Mode
+            </button>
           </div>
 
           <div className="flex items-center justify-center gap-4 mb-6">

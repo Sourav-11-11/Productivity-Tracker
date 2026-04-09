@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useJobStore, type Job, type JobStatus } from '../store/useJobStore';
 import { useStore } from '../store/useStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
+import { Sparkles, Copy, Check, X, Loader2 } from 'lucide-react';
+import axios from 'axios';
 import {
   DndContext,
   DragOverlay,
@@ -333,6 +335,10 @@ function DraggableJob({ job, updateJobStatus, onAddPrepTask }: { job: Job, updat
     data: job,
   });
 
+  const [isGeneratingPitch, setIsGeneratingPitch] = useState(false);
+  const [generatedPitch, setGeneratedPitch] = useState<string | null>(null);
+  const [copiedMap, setCopied] = useState<{ [key: string]: boolean }>({});
+
   const style = { transform: transform ? CSS.Translate.toString(transform) : undefined };
   const urgency = getUrgency(job.deadline);
   const nsIdx = COLUMNS.indexOf(job.status) + 1;
@@ -356,8 +362,50 @@ function DraggableJob({ job, updateJobStatus, onAddPrepTask }: { job: Job, updat
            </div>
         )}
       </div>
+
+      {generatedPitch && (
+        <div className="mt-4 p-4 bg-[#141414] border border-[#262626] rounded-xl text-xs text-[#A3A3A3] tracking-wide relative group/pitch" onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+           <button 
+              onClick={() => setGeneratedPitch(null)} 
+              className="absolute top-2 right-2 text-[#525252] hover:text-[#FAFAFA] transition-colors"
+              onPointerDown={(e) => e.stopPropagation()}
+           >
+              <X className="w-3 h-3" />
+           </button>
+           <p className="mb-3 pr-4 leading-relaxed font-light">{generatedPitch}</p>
+           <button
+              onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(generatedPitch); setCopied({ ...copiedMap, pitch: true }); setTimeout(() => setCopied({ ...copiedMap, pitch: false }), 2000); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#FAFAFA] hover:text-[#0A0A0A] hover:bg-[#FAFAFA] transition-colors py-1 px-2 rounded"
+           >
+              {copiedMap['pitch'] ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+              {copiedMap['pitch'] ? 'Copied' : 'Copy Pitch'}
+           </button>
+        </div>
+      )}
       
       <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity duration-700 mt-6 min-h-[20px]">
+        <button 
+           onClick={async (e) => {
+             e.stopPropagation();
+             setIsGeneratingPitch(true);
+             try {
+               const res = await axios.post('http://localhost:5000/api/ai/generate-pitch', { role: job.role, company: job.company });
+               setGeneratedPitch(res.data.pitch);
+             } catch (err) {
+               console.error('Pitch error:', err);
+             } finally {
+               setIsGeneratingPitch(false);
+             }
+           }}
+           onPointerDown={(e) => e.stopPropagation()}
+           disabled={isGeneratingPitch}
+           className="text-[10px] leading-tight font-medium uppercase tracking-[0.2em] text-[#FAFAFA] flex items-center gap-2 hover:text-[#A3A3A3] transition-colors disabled:opacity-50"
+         >
+           {isGeneratingPitch ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+           Pitch
+        </button>
+
         <button
           onPointerDown={(e) => { e.stopPropagation(); onAddPrepTask(job.id); }}
           className="text-[10px] uppercase tracking-[0.2em] text-[#525252] hover:text-[#FAFAFA] transition-colors"
