@@ -48,5 +48,5 @@ app.use("/api/notes", require("./routes/notes"));
 app.use("/api/jobs", require("./routes/jobs"));
 
 app.listen(PORT, () => {
-  console.log(\Server running on port \\);
+  console.log(`Server running on port ${PORT}`);
 });
