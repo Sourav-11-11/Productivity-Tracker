@@ -12,7 +12,15 @@ const { syncJobs } = require('./services/jobService');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://productivity-tracker-8td6ey7df-souravs-projects-5ce2e73a.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:5000"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // MongoDB Connection
