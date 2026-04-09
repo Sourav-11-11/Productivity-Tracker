@@ -13,7 +13,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 
-**[🌐 Live Demo](https://productivity-tracker-one-sage.vercel.app/){:target="_blank"} · [📧 Report Bug](#) · [⭐ Request Feature](#) · [🔗 Website](https://www.flowstateai.works/)**
+**[<a href="https://productivity-tracker-one-sage.vercel.app/" target="_blank">🌐 Live Demo</a>](https://productivity-tracker-one-sage.vercel.app/) · [📧 Report Bug](#) · [⭐ Request Feature](#) · [🔗 Website](https://www.flowstateai.works/)**
 
 </div>
 
