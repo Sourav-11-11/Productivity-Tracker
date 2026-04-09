@@ -44,7 +44,7 @@ const fetchArbeitnowJobs = async () => {
 };
 
 const syncJobs = async () => {
-  console.log('â³ Syncing jobs from providers...', new Date().toLocaleString());
+  console.log(`Syncing jobs from providers... ${new Date().toLocaleString()}`);
   
   const remotiveJobs = await fetchRemotiveJobs();
   const arbeitnowJobs = await fetchArbeitnowJobs();

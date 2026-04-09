@@ -238,14 +238,14 @@ async function generatePitch({ company, role, userContext }) {
     return "Hi, I noticed the open role for " + role + " at " + company + ". I have a strong background in this area and would love to chat.";
   }
 
-  const prompt = `n  You are an expert career coach writing a cold reach-out LinkedIn DM.
-  Target Company: ${company}
-  Target Role: ${role}
-  User Level: ${userContext}
+  const prompt = `You are an expert career coach writing a cold reach-out LinkedIn DM.
+Target Company: ${company}
+Target Role: ${role}
+User Level: ${userContext}
 
-  Write a PUNCHY, 3-sentence DM. Very minimal, highly professional.
-  Do not include subject lines or greetings. Just the direct message body.
-  `;
+Write a PUNCHY, 3-sentence DM. Very minimal, highly professional.
+Do not include subject lines or greetings. Just the direct message body.
+`;
 
   try {
     const response = await openai.chat.completions.create({

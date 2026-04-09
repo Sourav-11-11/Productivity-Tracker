@@ -20,7 +20,7 @@ const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/letsmakeitdb';
     await mongoose.connect(mongoURI);
-    console.log('âœ… MongoDB connected');
+    console.log('MongoDB connected successfully');
     
     // Initial sync
     syncJobs();
@@ -31,7 +31,7 @@ const connectDB = async () => {
       syncJobs();
     });
   } catch (error) {
-    console.error('âŒ MongoDB connection failed:', error.message);
+    console.error('MongoDB connection failed:', error.message);
   }
 };
 
