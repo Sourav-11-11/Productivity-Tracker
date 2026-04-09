@@ -17,7 +17,7 @@ export const Progress: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
 
-  // Load historical data (90 days)
+  // Load historical data (365 days)
   const statsMapping = useMemo(() => {
     const stats: Record<string, DailyStats> = {};
     const timetable = JSON.parse(
@@ -26,7 +26,7 @@ export const Progress: React.FC = () => {
         localStorage.getItem('daily_timetable') || '[]'
     );
 
-    for (let i = 89; i >= 0; i--) {
+    for (let i = 364; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
@@ -170,8 +170,8 @@ export const Progress: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full bg-transparent py-16 px-6 md:px-12 text-[#FAFAFA] font-sans selection:bg-[#FAFAFA] selection:text-[#0A0A0A]">
-      <div className="max-w-4xl mx-auto space-y-24">
+    <div className="min-h-full bg-transparent py-8 px-4 md:px-8 text-[#FAFAFA] font-sans selection:bg-[#FAFAFA] selection:text-[#0A0A0A]">
+      <div className="max-w-[70rem] mx-auto space-y-12">
         
         {/* HEADER */}
         <header className="flex flex-col space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
@@ -228,41 +228,102 @@ export const Progress: React.FC = () => {
 
         {/* HEATMAP */}
         <section className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both border-t border-[#141414] pt-12">
-            <div className="text-[10px] uppercase tracking-widest text-[#525252] mb-8">
-                90-Day Execution Grid
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+                <div>
+                    <h2 className="text-[10px] uppercase tracking-widest text-[#525252]">
+                        1-Year Execution Matrix
+                    </h2>
+                    <p className="text-[#A3A3A3] text-sm mt-1 font-light">365 Days of Consistency</p>
+                </div>
+                
+                {/* Legend */}
+                <div className="flex items-center justify-end gap-2 text-xs text-[#525252] mb-1">
+                    <span>Less</span>
+                    <div className="flex gap-1 mx-1">
+                        <div className="w-3.5 h-3.5 rounded-[2px] bg-[#141414] border border-[#262626]" />
+                        <div className="w-3.5 h-3.5 rounded-[2px] bg-[#262626]" />
+                        <div className="w-3.5 h-3.5 rounded-[2px] bg-[#525252]" />
+                        <div className="w-3.5 h-3.5 rounded-[2px] bg-[#A3A3A3]" />
+                        <div className="w-3.5 h-3.5 rounded-[2px] bg-[#FAFAFA]" />
+                    </div>
+                    <span>More</span>
+                </div>
             </div>
             
-            <div className="overflow-x-auto pb-6 hide-scrollbar flex justify-start">
-                <div className="flex gap-1.5 shrink-0 mx-auto md:mx-0">
-                    {Array.from({ length: 13 }).map((_, colIndex) => {
-                        const startIndex = colIndex * 7;
-                        const colData = statsList.slice(-91).slice(startIndex, startIndex + 7);
-                        return (
-                            <div key={colIndex} className="flex flex-col gap-1.5 shrink-0">
-                                {colData.map((s, ri) => {
-                                    if (!s) return <div key={ri} className="w-4 h-4" />;
-                                    
-                                    let intensityClass = "bg-[#141414]";
-                                    if (s.percentage > 0 && s.percentage <= 30) intensityClass = "bg-[#262626]";
-                                    else if (s.percentage > 30 && s.percentage <= 60) intensityClass = "bg-[#525252]";
-                                    else if (s.percentage > 60 && s.percentage <= 90) intensityClass = "bg-[#A3A3A3]";
-                                    else if (s.percentage > 90) intensityClass = "bg-[#FAFAFA]";
+            <div className="overflow-x-auto pb-6 hide-scrollbar flex justify-start rounded-2xl w-full">
+                <div className="flex flex-col gap-2 w-full">
+                    <div className="flex gap-[3px] shrink-0 mx-auto md:mx-0 w-full justify-between lg:justify-start">
+                        {/* Day Labels */}
+                        <div className="flex flex-col gap-[3px] text-[10px] text-[#525252] mr-2 justify-between py-[2px] h-[78px]">
+                            <span className="leading-none mt-[8px]">Mon</span>
+                            <span className="leading-none mt-[18px]">Wed</span>
+                            <span className="leading-none mt-[18px]">Fri</span>
+                        </div>
 
-                                    const isSelected = selectedDate === s.date;
-                                    const isToday = s.date === todayStr;
+                        {/* Grid */}
+                        {(() => {
+                            const heatmapData = statsList.slice(-365);
+                            if (heatmapData.length === 0) return null;
+                            
+                            // Align starting day
+                            const firstDayOfWeek = new Date(heatmapData[0].date).getDay();
+                            const paddedData = [...Array(firstDayOfWeek).fill(null), ...heatmapData];
+                            
+                            const weeks = [];
+                            for (let i = 0; i < paddedData.length; i += 7) {
+                                weeks.push(paddedData.slice(i, i + 7));
+                            }
 
-                                    return (
-                                        <button 
-                                            key={s.date}
-                                            onClick={() => setSelectedDate(s.date)}
-                                            className={`w-4 h-4 rounded-[2px] transition-all focus:outline-none ${intensityClass} ${isSelected ? 'ring-1 ring-offset-[#0A0A0A] ring-offset-4 ring-[#FAFAFA]' : 'hover:ring-1 hover:ring-[#525252] hover:ring-offset-2 hover:ring-offset-[#0A0A0A]'} ${isToday && !isSelected ? 'border border-[#525252]' : ''}`}
-                                            title={`${s.date}: ${s.completed}/${s.total} tasks (${Math.floor(s.focusTime/60)}h ${s.focusTime%60}m)`}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
+                            // Inject month labels
+                            let lastMonth = -1;
+                            
+                            return (
+                                <div className="flex flex-col w-full">
+                                    <div className="flex gap-[3px] mb-1.5 h-3">
+                                        {weeks.map((week, i) => {
+                                            const firstValidDay = week.find(d => d !== null);
+                                            if (firstValidDay) {
+                                                const month = new Date(firstValidDay.date).getMonth();
+                                                if (month !== lastMonth) {
+                                                    lastMonth = month;
+                                                    const monthStr = new Date(firstValidDay.date).toLocaleString('default', { month: 'short' });
+                                                    return <div key={'m'+i} className="text-[10px] text-[#525252] min-w-[12px]">{monthStr}</div>;
+                                                }
+                                            }
+                                            return <div key={'m'+i} className="min-w-[8px] md:min-w-[10.5px] w-full" />;
+                                        })}
+                                    </div>
+                                    <div className="flex gap-[3px]">
+                                        {weeks.map((week, colIndex) => (
+                                            <div key={colIndex} className="flex flex-col gap-[3px] shrink-0">
+                                                {week.map((s, ri) => {
+                                                    if (!s) return <div key={ri} className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-[1px] bg-transparent" />;
+                                                    
+                                                    let intensityClass = "bg-[#141414] border border-[#262626]/50 hover:border-[#525252]";
+                                                    if (s.percentage > 0 && s.percentage <= 30) intensityClass = "bg-[#262626]";
+                                                    else if (s.percentage > 30 && s.percentage <= 60) intensityClass = "bg-[#525252]";
+                                                    else if (s.percentage > 60 && s.percentage <= 90) intensityClass = "bg-[#A3A3A3]";
+                                                    else if (s.percentage > 90) intensityClass = "bg-[#FAFAFA]";
+
+                                                    const isSelected = selectedDate === s.date;
+                                                    const isToday = s.date === todayStr;
+
+                                                    return (
+                                                        <button 
+                                                            key={s.date}
+                                                            onClick={() => setSelectedDate(s.date)}
+                                                            className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-[1px] transition-all duration-300 focus:outline-none ${intensityClass} ${isSelected ? 'ring-1 ring-offset-[#0A0A0A] ring-offset-1 ring-[#FAFAFA] scale-125 z-10' : 'hover:scale-150 hover:z-10 shadow-sm'} ${isToday && !isSelected ? 'ring-1 ring-[#525252]' : ''}`}
+                                                            title={`${s.date}: ${s.percentage}% (${s.completed}/${s.total} Blocks)`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
                 </div>
             </div>
         </section>

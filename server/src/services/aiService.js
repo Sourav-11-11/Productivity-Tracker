@@ -1,4 +1,4 @@
-﻿const OpenAI = require('openai');
+const OpenAI = require('openai');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -38,7 +38,7 @@ ${goalGuidance[primaryGoal] || goalGuidance['Placement']}`;
 
 async function analyzeFullSystem(data) {
   const { tasks = [], jobs = [], userContext = {} } = data;
-  const { goal = 'Placement', goals = ['Placement'], level = 'Beginner', availableTime = '4â€“8h' } = userContext;
+  const { goal = 'Placement', goals = ['Placement'], level = 'Beginner', availableTime = '4–8h' } = userContext;
 
   // Use goal if provided, otherwise use first goal from goals array
   const primaryGoal = goal || (goals[0] ?? 'Placement');
@@ -57,8 +57,8 @@ async function analyzeFullSystem(data) {
 
   const timeConstraints = {
     '<2h': 'Limited time: prioritize high-impact tasks only. Suggest batching and micro-learning.',
-    '2â€“4h': 'Moderate time: balance breadth and depth. Suggest focused blocks with clear goals.',
-    '4â€“8h': 'Good available time: allow deeper work and skill building.',
+    '2–4h': 'Moderate time: balance breadth and depth. Suggest focused blocks with clear goals.',
+    '4–8h': 'Good available time: allow deeper work and skill building.',
   };
 
   // Build goals summary
@@ -67,7 +67,7 @@ async function analyzeFullSystem(data) {
   const prompt = `Analyze this ${level} developer's productivity and ${primaryGoal} journey:
 Working on: ${goalsText}
 Daily available time: ${availableTime}
-${timeConstraints[availableTime] || timeConstraints['4â€“8h']}
+${timeConstraints[availableTime] || timeConstraints['4–8h']}
 
 ${levelRequirements[level] || levelRequirements['Beginner']}
 ${goalContext[primaryGoal] || goalContext['Placement']}
@@ -113,7 +113,7 @@ All text must be concise, actionable, and tailored to their ${level} level.`;
 
 async function generateDailyPlan(data) {
   const { tasks = [], jobs = [], userContext = {} } = data;
-  const { availableTime = '4â€“8h', level = 'Beginner', goal = 'Placement', goals = ['Placement'] } = userContext;
+  const { availableTime = '4–8h', level = 'Beginner', goal = 'Placement', goals = ['Placement'] } = userContext;
 
   // Use goal if provided, otherwise use first goal from goals array
   const primaryGoal = goal || (goals[0] ?? 'Placement');
@@ -121,10 +121,10 @@ async function generateDailyPlan(data) {
   // Realistic productive hours (accounting for breaks, context switching)
   const timeMap = {
     '<2h': { max: 1.5, productive: 1.25, taskCount: 2, depth: 'surface-level' },
-    '2â€“4h': { max: 3, productive: 2.5, taskCount: 3, depth: 'moderate' },
-    '4â€“8h': { max: 6, productive: 5, taskCount: 5, depth: 'deep' }
+    '2–4h': { max: 3, productive: 2.5, taskCount: 3, depth: 'moderate' },
+    '4–8h': { max: 6, productive: 5, taskCount: 5, depth: 'deep' }
   };
-  const timeConfig = timeMap[availableTime] || timeMap['4â€“8h'];
+  const timeConfig = timeMap[availableTime] || timeMap['4–8h'];
 
   const levelStrategy = {
     'Beginner': {
@@ -238,15 +238,14 @@ async function generatePitch({ company, role, userContext }) {
     return "Hi, I noticed the open role for " + role + " at " + company + ". I have a strong background in this area and would love to chat.";
   }
 
-  const prompt = \
-  You are an expert career coach writing a cold reach-out LinkedIn DM.
-  Target Company: \
-  Target Role: \
-  User Level: \
+  const prompt = `n  You are an expert career coach writing a cold reach-out LinkedIn DM.
+  Target Company: ${company}
+  Target Role: ${role}
+  User Level: ${userContext}
 
   Write a PUNCHY, 3-sentence DM. Very minimal, highly professional.
   Do not include subject lines or greetings. Just the direct message body.
-  \;
+  `;
 
   try {
     const response = await openai.chat.completions.create({
@@ -264,3 +263,5 @@ async function generatePitch({ company, role, userContext }) {
 }
 
 module.exports.generatePitch = generatePitch;
+
+

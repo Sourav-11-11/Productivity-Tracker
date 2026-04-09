@@ -70,7 +70,7 @@ const syncJobs = async () => {
     }
   }
   
-  console.log(âœ… Sycned jobs. Attempted inserts/upserts: );
+  console.log('Synced jobs. Attempted inserts/upserts: ', addedCount);
 };
 
 module.exports = { syncJobs };

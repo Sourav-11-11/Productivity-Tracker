@@ -183,7 +183,7 @@ export function JobTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent overflow-x-hidden overflow-y-auto text-[#FAFAFA] p-12 lg:p-24 space-y-32 selection:bg-[#FAFAFA] selection:text-[#0A0A0A]">
+    <div className="min-h-screen bg-transparent overflow-x-hidden overflow-y-auto text-[#FAFAFA] p-6 lg:p-8 space-y-12 selection:bg-[#FAFAFA] selection:text-[#0A0A0A]">
        
        <header className="max-w-7xl mx-auto flex flex-col items-start gap-4 animate-in fade-in slide-in-from-bottom-5 duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]">
          <h1 className="text-[10px] uppercase tracking-[0.5em] text-[#FAFAFA] font-medium">Trajectory</h1>
