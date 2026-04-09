@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({
   origin: [
-    "https://productivity-tracker-8td6ey7df-souravs-projects-5ce2e73a.vercel.app",
+    "https://productivity-tracker-one-sage.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:5000"
